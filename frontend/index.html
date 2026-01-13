@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SQL Assistant</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <button id="newChat">+ New Chat</button>
+    <div id="sessions"></div>
+  </aside>
+
+  <main id="chatContainer">
+    <header id="header">
+      <h1>SQL Assistant</h1>
+      <select id="modelSelect">
+        <option value="sqlcoder">sqlcoder</option>
+        <option value="llama3">llama3</option>
+      </select>
+      <button id="streamToggle" title="Toggle streaming">Stream: ON</button>
+    </header>
+
+    <section id="chatPanel"></section>
+
+    <footer id="composer">
+      <textarea id="input" placeholder="Ask for a SQL query..."></textarea>
+      <button id="send">Send</button>
+    </footer>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
