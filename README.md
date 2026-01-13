@@ -1,127 +1,82 @@
-# Generic_Chat_Application
+# Generic Chat Application
 
-Prompt :
-You are a senior full-stack engineer and UI/UX designer.
+A modern, ChatGPT-style web application for general-purpose AI interaction using a local LLM via Ollama. 
+Built with **Golang** (Backend), **React** (Frontend), and **PostgreSQL** (Database).
 
-Your task is to generate a complete ChatGPT-style SQL Assistant web application using Golang as the backend.
+*(Formerly SQL Assistant Web Application)*
 
-========================
-TECH STACK
-========================
-Frontend:
-- HTML5, CSS3, JavaScript (ES6)
-- No heavy framework (Vanilla JS preferred)
-- Responsive UI inspired by ChatGPT / Claude / Perplexity
+## Features
 
-Backend:
-- Golang (net/http)
-- REST APIs
-- Server-Sent Events (SSE) for streaming
-- CORS enabled
+- **Generic AI Assistant**: Helpful, harmless, and honest assistant for coding, writing, and analysis.
+- **User Authentication**: Secure Login and Registration system using JWT.
+- **Persistent Chat History**: All chats and messages are saved to a local PostgreSQL database.
+- **Real-time Streaming**: Responses are streamed token-by-token using Server-Sent Events (SSE).
+- **Chat Management**: Create new chats, view history in sidebar, and delete old conversations.
+- **Dark Mode UI**: Clean, responsive interface inspired by modern chat apps.
 
-========================
-APPLICATION GOALS
-========================
-1. ChatGPT-Like Interface:
-   - Chat panel centered
-   - User messages on right, assistant on left
-   - Typing animation
-   - Auto scroll
-   - Input text area with Send button
-   - Enter key submits message
-   - Code blocks styled for SQL output with copy button
+## Prerequisites
 
-2. Chat History:
-   - Sidebar showing:
-     - "New Chat"
-     - Previous chat sessions
-   - Store chat history in browser localStorage
-   - Clicking previous chat restores messages
-   - Persist data on page reload
+1.  **Go** (1.21+)
+2.  **Node.js** (18+)
+3.  **Docker & Docker Compose**: Required for the PostgreSQL database.
+4.  **Ollama**: Installed and running locally.
+    - Pull a model: `ollama pull llama3` (default) or any other supported model.
 
-3. SQL Query Generator:
-   - Assistant returns ONLY SQL by default
-   - Explanation only when user explicitly asks
-   - Support PostgreSQL, MySQL, SQL Server
-   - Add a system prompt before every request:
-     "You are an expert SQL assistant. Return ONLY valid SQL queries."
+## Running the Application
 
-4. Backend API Integration (IMPORTANT):
-   - Integrate the following model API using Go HTTP client:
+### 1. Start the Database
+Start the PostgreSQL container using Docker Compose:
 
-     curl --location 'http://localhost:11434/api/generate' \
-     --header 'Content-Type: application/json' \
-     --data '{
-        "model": "llama3 or sqlcoder",
-        "prompt": "<USER_PROMPT>",
-        "stream": false
-     }'
+```bash
+docker-compose up -d
+```
+This runs Postgres on port 5432 with the credentials defined in `docker-compose.yml`.
 
-   - Backend exposes:
-     POST /api/chat        → non-stream response
-     GET  /api/chat/stream → streaming response (SSE)
+### 2. Start the Backend
 
-   - Frontend NEVER calls the model API directly
-   - Backend injects system prompt + user prompt
-   - Backend formats response before sending
+```bash
+cd backend
+go mod tidy
+go run main.go
+```
+The server will start at `http://localhost:8080`.
+It will automatically connect to the database and run any necessary migrations (create tables).
 
-5. Streaming Support:
-   - When stream=true:
-     - Use Server-Sent Events (SSE)
-     - Stream tokens like ChatGPT
-     - Frontend renders text progressively
-   - When stream=false:
-     - Return full response at once
+### 3. Start the Frontend
 
-6. UI/UX:
-   - Dark mode ChatGPT-style design
-   - Smooth animations
-   - Loading indicator while waiting
-   - Sidebar collapses on mobile
-   - Modern typography
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The application will be available at `http://localhost:5173`.
 
-7. Project Structure:
-   /frontend
-     index.html
-     styles.css
-     app.js
+## Usage
 
-   /backend
-     main.go
-     handlers/chat.go
-     services/ollama.go
-     middleware/cors.go
+1.  Register a new account on the login screen.
+2.  Log in with your credentials.
+3.  Type a message to the AI (e.g., "Write a poem about coding").
+4.  Your chat history is saved automatically. You can access previous chats from the sidebar.
+5.  To delete a chat, hover over it in the sidebar and click the trash icon.
 
-8. Code Quality:
-   - Clean, idiomatic Go
-   - Context usage
-   - Proper error handling
-   - No global state misuse
-   - Commented code
+## Project Structure
 
-========================
-SYSTEM PROMPT (MANDATORY)
-========================
-Always prepend this system message to user input:
+- `backend/`: Golang server
+    - `handlers/`: API route handlers (Auth, Chat, History).
+    - `middleware/`: JWT Authentication and CORS.
+    - `db/`: Database connection and schema migrations.
+    - `services/`: Ollama API client.
+- `frontend/`: React + Vite application
+    - `src/components/`: Reusable UI components (Login, Sidebar, ChatWindow).
+    - `src/api.js`: API client methods.
+- `docker-compose.yml`: PostgreSQL service configuration.
 
-You are an expert SQL assistant. 
-Your sole purpose is to generate valid, optimized, and secure SQL queries for PostgreSQL, MySQL, and SQL Server.
+## Environment Variables
 
-STRICT OPERATIONAL RULES:
-1. OUTPUT FORMAT: Return ONLY valid SQL code. Do NOT include explanations, introductory text, or concluding remarks unless the user explicitly asks for an explanation.
-2. SAFETY GUARDRAILS: You are strictly prohibited from generating queries that contain destructive or administrative commands. 
-   - FORBIDDEN KEYWORDS: DROP, DELETE, TRUNCATE, ALTER, GRANT, REVOKE, SHUTDOWN.
-   - If a user requests a destructive operation, respond with: "-- Error: Destructive SQL commands (DROP, DELETE, TRUNCATE) are not permitted for safety reasons."
-3. CODE QUALITY: Ensure all table and column names are handled as described by the user. If schema information is provided, adhere to it strictly.
-4. SYSTEM CONTEXT: You are an expert SQL assistant. Return ONLY valid SQL queries. Do NOT explain unless explicitly asked.
+- **Backend**:
+    - Port: 8080
+    - DB Connection: `postgres://user:password@localhost:5432/sqlchat` (Hardcoded in `main.go` for dev)
+    - JWT Secret: `my_secret_key` (Hardcoded in `middleware/auth.go` for dev)
 
-========================
-OUTPUT EXPECTATION
-========================
-- Generate full frontend code
-- Generate Golang backend code
-- Streaming + non-streaming supported
-- Provide run instructions
-- App should behave like ChatGPT but specialized for SQL generation
-
-Begin generating the project now.
+- **Frontend**:
+    - API URL: `http://localhost:8080/api`

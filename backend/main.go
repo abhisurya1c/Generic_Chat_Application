@@ -1,50 +1,47 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"time"
 
-	"backend/handlers"
-	"backend/middleware"
+	"github.com/abhisurya1c/Generic_Chat_Application/backend/db"
+	"github.com/abhisurya1c/Generic_Chat_Application/backend/handlers"
+	"github.com/abhisurya1c/Generic_Chat_Application/backend/middleware"
 )
 
 func main() {
-	mux := http.NewServeMux()
-
-	// API
-	mux.HandleFunc("/api/chat", handlers.ChatHandler)
-	mux.HandleFunc("/api/chat/stream", handlers.StreamChatHandler)
-
-	// Static frontend
-	fs := http.FileServer(http.Dir("./frontend"))
-	mux.Handle("/", fs)
-
-	handler := middleware.CORS(mux)
-
-	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: handler,
+	// 1. Initialize DB
+	connStr := "postgres://user:password@localhost:5432/sqlchat?sslmode=disable"
+	if err := db.Connect(connStr); err != nil {
+		log.Fatal(err)
 	}
 
-	go func() {
-		log.Println("server listening on :8080")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %v", err)
-		}
-	}()
+	mux := http.NewServeMux()
 
-	// Graceful shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
-	log.Println("shutdown server...")
+	// 2. Auth Routes (Public)
+	mux.HandleFunc("/api/register", handlers.RegisterHandler)
+	mux.HandleFunc("/api/login", handlers.LoginHandler)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_ = srv.Shutdown(ctx)
-	log.Println("server stopped")
+	// 3. Protected Routes
+	// Helper to wrap handlers with AuthMiddleware
+	protected := func(h http.HandlerFunc) http.HandlerFunc {
+		return middleware.AuthMiddleware(h)
+	}
+
+	mux.HandleFunc("/api/chat", protected(handlers.ChatHandler))
+	mux.HandleFunc("/api/chat/stream", protected(handlers.StreamChatHandler))
+
+	mux.HandleFunc("/api/history/chats", protected(handlers.GetChatsHandler))
+	mux.HandleFunc("/api/history/messages", protected(handlers.GetMessagesHandler))
+	mux.HandleFunc("/api/history/delete", protected(handlers.DeleteChatHandler))
+
+	// 4. Global Middleware (CORS)
+	handler := middleware.EnableCORS(mux)
+
+	port := 8080
+	fmt.Printf("Server starting on port %d...\n", port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler); err != nil {
+		log.Fatal(err)
+	}
 }
